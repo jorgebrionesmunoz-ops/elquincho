@@ -97,6 +97,26 @@
     .toast { position: fixed; right: 24px; bottom: 24px; z-index: 3; max-width: min(380px, calc(100vw - 32px)); padding: 12px 16px; border: 1px solid #c9d8ca; border-radius: 5px; background: #f5faf5; color: var(--green-dark); box-shadow: var(--shadow); font-size: 13px; animation: appear 180ms ease-out; }
     .toast[hidden] { display: none; }
     @keyframes appear { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .role-switch { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 11px; }
+    .role-switch select { width: auto; min-width: 118px; height: 34px; padding: 0 8px; border-radius: 4px; font-size: 12px; }
+    .role-panel[hidden] { display: none; }
+    .inventory-panel, .admin-panel { margin-top: 20px; padding: 22px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: var(--shadow); }
+    .panel-description { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
+    .inventory-categories { margin-top: 16px; }
+    .inventory-table-wrap, .sales-table-wrap { overflow-x: auto; }
+    .data-table { width: 100%; border-collapse: collapse; text-align: left; }
+    .data-table th { padding: 10px 12px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; white-space: nowrap; }
+    .data-table td { padding: 11px 12px; border-bottom: 1px solid #efeee8; font-size: 12px; }
+    .data-table tbody tr:last-child td { border-bottom: 0; }
+    .stock-adjust { display: inline-flex; align-items: center; gap: 9px; }
+    .stock-adjust button { width: 27px; height: 27px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 4px; background: white; cursor: pointer; }
+    .stock-adjust button:hover { border-color: #9eac9f; background: var(--green-pale); }
+    .stock-value { min-width: 25px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .admin-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 18px 0 24px; }
+    .stat { padding: 14px; border: 1px solid var(--line); border-radius: 5px; background: #fff; }
+    .stat-label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 11px; }
+    .stat-value { font-family: Georgia, "Times New Roman", serif; font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .table-empty { padding: 24px 12px !important; color: var(--muted); text-align: center; }
 
     @media (max-width: 900px) {
       .workspace { grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; }
@@ -109,6 +129,7 @@
       .brand-mark { width: 32px; height: 32px; }
       .brand-name { font-size: 17px; }
       .brand-subtitle, .clock { display: none; }
+      .role-switch > span, .connection { display: none; }
       main { padding: 22px 14px 28px; }
       .page-heading { align-items: start; flex-direction: column; gap: 7px; margin-bottom: 16px; }
       h1 { font-size: 27px; }
@@ -122,6 +143,10 @@
       .product { min-height: 124px; padding: 11px; }
       .product-name { font-size: 13px; }
       .catalog-controls { gap: 6px; }
+      .inventory-panel, .admin-panel { padding: 15px; }
+      .admin-stats { grid-template-columns: 1fr; gap: 7px; }
+      .stat { padding: 10px 12px; }
+      .stat-value { font-size: 19px; }
     }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
   </style>
@@ -138,18 +163,27 @@
     <div class="topbar-right">
       <time class="clock" id="clock"></time>
       <span class="connection">Guardado en este dispositivo</span>
+      <label class="role-switch" for="role-select">
+        <span>Usuario de prueba</span>
+        <select id="role-select" aria-label="Cambiar usuario y rol">
+          <option value="vendedor">Juan · Vendedor</option>
+          <option value="bodeguero">Camila · Bodeguero</option>
+          <option value="admin">Admin · Administrador</option>
+        </select>
+      </label>
     </div>
   </header>
 
   <main>
     <div class="page-heading">
       <div>
-        <p class="eyebrow">Punto de venta</p>
-        <h1>Venta del día</h1>
+        <p class="eyebrow" id="page-eyebrow">Punto de venta</p>
+        <h1 id="page-title">Venta del día</h1>
       </div>
       <div class="date-label" id="date-label"></div>
     </div>
 
+    <section class="role-panel" id="panel-ventas" aria-label="Panel de ventas">
     <div class="workspace">
       <section class="catalog" aria-labelledby="catalog-title">
         <div class="section-heading">
@@ -194,6 +228,45 @@
         </div>
       </aside>
     </div>
+    </section>
+
+    <section class="role-panel inventory-panel" id="panel-inventario" aria-labelledby="inventory-title" hidden>
+      <div class="section-heading">
+        <div>
+          <h2 id="inventory-title">Inventario</h2>
+          <p class="panel-description">Existencias por producto. Usa los controles para registrar entradas o mermas.</p>
+        </div>
+        <span class="stock-summary" id="inventory-summary"></span>
+      </div>
+      <nav class="categories inventory-categories" id="inventory-categories" aria-label="Filtrar inventario por categoría"></nav>
+      <div class="inventory-table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Producto</th><th>Categoría</th><th>Precio</th><th>Existencias</th></tr></thead>
+          <tbody id="inventory-list"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="role-panel admin-panel" id="panel-admin" aria-labelledby="admin-title" hidden>
+      <div class="section-heading">
+        <div>
+          <h2 id="admin-title">Administración</h2>
+          <p class="panel-description">Resumen e historial de ventas registradas en este dispositivo.</p>
+        </div>
+      </div>
+      <div class="admin-stats">
+        <div class="stat"><span class="stat-label">Ventas registradas</span><strong class="stat-value" id="sales-count">0</strong></div>
+        <div class="stat"><span class="stat-label">Total vendido</span><strong class="stat-value" id="sales-total">$0</strong></div>
+        <div class="stat"><span class="stat-label">Productos en catálogo</span><strong class="stat-value" id="admin-product-count">0</strong></div>
+      </div>
+      <div class="section-heading"><h2>Últimas ventas</h2></div>
+      <div class="sales-table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Folio</th><th>Fecha</th><th>Productos</th><th>Pago</th><th>Total</th></tr></thead>
+          <tbody id="sales-list"></tbody>
+        </table>
+      </div>
+    </section>
   </main>
   <div class="toast" id="toast" role="status" hidden></div>
 
@@ -208,9 +281,17 @@
     ];
     const storageKeys = { products: "elquincho-products-v1", sales: "elquincho-sales-v1" };
     const money = new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 });
+    const roleStorageKey = "elquincho-role-v1";
+    const validRoles = ["admin", "vendedor", "bodeguero"];
+    let usuarioActual = {
+      nombre: "Juan Pérez",
+      rol: localStorage.getItem(roleStorageKey) || "vendedor"
+    };
+    if (!validRoles.includes(usuarioActual.rol)) usuarioActual.rol = "vendedor";
     let products = loadProducts();
     let cart = new Map();
     let activeCategory = "Todos";
+    let activeInventoryCategory = "Todos";
     let toastTimer;
 
     function loadProducts() {
@@ -299,6 +380,68 @@
       document.getElementById("stock-summary").textContent = `${products.length} productos · ${products.reduce((sum, product) => sum + product.stock, 0)} unidades`;
     }
 
+    function renderInventoryCategories() {
+      const categories = ["Todos", ...new Set(products.map((product) => product.category))];
+      const container = document.getElementById("inventory-categories");
+      container.replaceChildren(...categories.map((category) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "category-button";
+        button.textContent = category;
+        button.setAttribute("aria-pressed", String(activeInventoryCategory === category));
+        button.addEventListener("click", () => {
+          activeInventoryCategory = category;
+          renderInventory();
+        });
+        return button;
+      }));
+    }
+
+    function renderInventory() {
+      renderInventoryCategories();
+      const visibleProducts = products.filter((product) => activeInventoryCategory === "Todos" || product.category === activeInventoryCategory);
+      const rows = visibleProducts.map((product) => {
+        const row = document.createElement("tr");
+        const name = document.createElement("td");
+        name.textContent = product.name;
+        const category = document.createElement("td");
+        category.textContent = product.category;
+        const price = document.createElement("td");
+        price.textContent = money.format(product.price);
+        const stockCell = document.createElement("td");
+        const controls = document.createElement("div");
+        controls.className = "stock-adjust";
+        const decrease = makeQuantityButton("−", `Descontar una unidad de ${product.name}`, () => adjustStock(product.id, -1));
+        decrease.disabled = product.stock <= 0;
+        const value = document.createElement("span");
+        value.className = "stock-value";
+        value.textContent = String(product.stock);
+        const increase = makeQuantityButton("+", `Agregar una unidad a ${product.name}`, () => adjustStock(product.id, 1));
+        controls.append(decrease, value, increase);
+        stockCell.append(controls);
+        row.append(name, category, price, stockCell);
+        return row;
+      });
+      document.getElementById("inventory-list").replaceChildren(...rows);
+      document.getElementById("inventory-summary").textContent = `${products.length} productos · ${products.reduce((sum, product) => sum + product.stock, 0)} unidades`;
+    }
+
+    function adjustStock(productId, amount) {
+      if (!(["admin", "bodeguero"].includes(usuarioActual.rol))) return;
+      const product = products.find((item) => item.id === productId);
+      if (!product || product.stock + amount < 0) return;
+      product.stock += amount;
+      try {
+        saveProducts();
+      } catch (error) {
+        product.stock -= amount;
+        showToast("No se pudo guardar el cambio de inventario.");
+        return;
+      }
+      renderInventory();
+      renderProducts();
+    }
+
     function addToCart(productId) {
       const product = products.find((item) => item.id === productId);
       if (!product || (cart.get(productId) || 0) >= product.stock) return;
@@ -384,6 +527,62 @@
       }
     }
 
+    function renderAdmin() {
+      const sales = getSales();
+      document.getElementById("sales-count").textContent = String(sales.length);
+      document.getElementById("sales-total").textContent = money.format(sales.reduce((sum, sale) => sum + (Number(sale.total) || 0), 0));
+      document.getElementById("admin-product-count").textContent = String(products.length);
+      const latestSales = sales.slice(-8).reverse();
+      const rows = latestSales.map((sale) => {
+        const row = document.createElement("tr");
+        const folio = document.createElement("td");
+        folio.textContent = `#${String(sale.folio).padStart(4, "0")}`;
+        const date = document.createElement("td");
+        const parsedDate = new Date(sale.fecha);
+        date.textContent = Number.isNaN(parsedDate.getTime()) ? "Fecha no disponible" : parsedDate.toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short" });
+        const items = document.createElement("td");
+        items.textContent = (sale.items || []).map((item) => `${item.nombre} × ${item.cantidad}`).join(", ") || "Sin detalle";
+        const payment = document.createElement("td");
+        payment.textContent = sale.medioPago || "No indicado";
+        const total = document.createElement("td");
+        total.textContent = money.format(Number(sale.total) || 0);
+        row.append(folio, date, items, payment, total);
+        return row;
+      });
+      if (rows.length === 0) {
+        const row = document.createElement("tr");
+        const message = document.createElement("td");
+        message.className = "table-empty";
+        message.colSpan = 5;
+        message.textContent = "Todavía no hay ventas registradas.";
+        row.append(message);
+        rows.push(row);
+      }
+      document.getElementById("sales-list").replaceChildren(...rows);
+    }
+
+    function aplicarPermisosSegunRol() {
+      const seccionVentas = document.getElementById("panel-ventas");
+      const seccionInventario = document.getElementById("panel-inventario");
+      const seccionAdmin = document.getElementById("panel-admin");
+      const isAdmin = usuarioActual.rol === "admin";
+      const canManageInventory = isAdmin || usuarioActual.rol === "bodeguero";
+      seccionVentas.hidden = !(isAdmin || usuarioActual.rol === "vendedor");
+      seccionInventario.hidden = !canManageInventory;
+      seccionAdmin.hidden = !isAdmin;
+
+      const headings = {
+        vendedor: ["Punto de venta", "Venta del día"],
+        bodeguero: ["Control de stock", "Inventario"],
+        admin: ["Panel de control", "Administración"]
+      };
+      document.getElementById("page-eyebrow").textContent = headings[usuarioActual.rol][0];
+      document.getElementById("page-title").textContent = headings[usuarioActual.rol][1];
+      document.getElementById("role-select").value = usuarioActual.rol;
+      if (canManageInventory) renderInventory();
+      if (isAdmin) renderAdmin();
+    }
+
     function showToast(message) {
       const toast = document.getElementById("toast");
       toast.textContent = message;
@@ -428,9 +627,21 @@
       }
       cart.clear();
       renderCart();
+      renderInventory();
+      renderAdmin();
       showToast(`Venta ${String(sale.folio).padStart(4, "0")} registrada · ${money.format(sale.total)}`);
     }
 
+    document.getElementById("role-select").addEventListener("change", (event) => {
+      const roles = {
+        vendedor: { nombre: "Juan Pérez", rol: "vendedor" },
+        bodeguero: { nombre: "Camila Soto", rol: "bodeguero" },
+        admin: { nombre: "Administrador", rol: "admin" }
+      };
+      usuarioActual = roles[event.target.value] || roles.vendedor;
+      localStorage.setItem(roleStorageKey, usuarioActual.rol);
+      aplicarPermisosSegunRol();
+    });
     document.getElementById("search").addEventListener("input", renderProducts);
     document.getElementById("clear-cart").addEventListener("click", () => {
       cart.clear();
@@ -441,6 +652,7 @@
     setInterval(updateClock, 30000);
     renderCategories();
     renderCart();
+    aplicarPermisosSegunRol();
   </script>
 </body>
 </html>
