@@ -117,6 +117,16 @@
     .stat-label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 11px; }
     .stat-value { font-family: Georgia, "Times New Roman", serif; font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
     .table-empty { padding: 24px 12px !important; color: var(--muted); text-align: center; }
+    .production-panel { margin: 18px 0 22px; padding: 18px; border: 1px solid #e8c5bb; border-radius: 6px; background: #fbefeb; }
+    .production-panel h3 { margin: 0; color: #813b2d; font-family: Georgia, "Times New Roman", serif; font-size: 17px; font-weight: 600; }
+    .production-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 14px 0; }
+    .production-fields label { display: grid; gap: 6px; color: #626b63; font-size: 11px; }
+    .production-fields input { width: 100%; height: 38px; padding: 0 10px; border: 1px solid #dfd6d1; border-radius: 4px; background: white; color: var(--ink); font-size: 14px; }
+    .production-fields input:focus { border-color: #b46b59; outline: 2px solid rgb(166 75 55 / 14%); }
+    .production-actions { display: flex; align-items: center; gap: 12px; }
+    .production-save { min-height: 38px; padding: 0 14px; border: 0; border-radius: 4px; background: var(--red); color: white; cursor: pointer; font-size: 12px; font-weight: 700; }
+    .production-save:hover { background: #8e3d2c; }
+    .production-status { color: #786b66; font-size: 11px; }
 
     @media (max-width: 900px) {
       .workspace { grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; }
@@ -147,6 +157,8 @@
       .admin-stats { grid-template-columns: 1fr; gap: 7px; }
       .stat { padding: 10px 12px; }
       .stat-value { font-size: 19px; }
+      .production-fields { grid-template-columns: 1fr; gap: 9px; }
+      .production-panel { padding: 15px; }
     }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
   </style>
@@ -239,6 +251,24 @@
         <span class="stock-summary" id="inventory-summary"></span>
       </div>
       <nav class="categories inventory-categories" id="inventory-categories" aria-label="Filtrar inventario por categoría"></nav>
+      <section class="production-panel" aria-labelledby="production-title">
+        <h3 id="production-title">Control de horno y pollos asados</h3>
+        <div class="production-fields">
+          <label for="input-crudos">Pollos crudos ingresados
+            <input id="input-crudos" type="number" min="0" step="1" value="20" inputmode="numeric">
+          </label>
+          <label for="input-listos">Pollos listos en sala
+            <input id="input-listos" type="number" min="0" step="1" value="8" inputmode="numeric">
+          </label>
+          <label for="input-mermas">Mermas / pérdidas
+            <input id="input-mermas" type="number" min="0" step="1" value="0" inputmode="numeric">
+          </label>
+        </div>
+        <div class="production-actions">
+          <button type="button" class="production-save" id="save-production">Actualizar producción del día</button>
+          <span class="production-status" id="production-status" role="status"></span>
+        </div>
+      </section>
       <div class="inventory-table-wrap">
         <table class="data-table">
           <thead><tr><th>Producto</th><th>Categoría</th><th>Precio</th><th>Existencias</th></tr></thead>
@@ -279,7 +309,7 @@
       { id: "pollo-papas", name: "Pollo Asado Entero + Papas", category: "Pollos Asados", price: 9500, unit: "un.", stock: 8 },
       { id: "medio-pollo-asado", name: "Medio Pollo Asado", category: "Pollos Asados", price: 5000, unit: "un.", stock: 5 }
     ];
-    const storageKeys = { products: "elquincho-products-v1", sales: "elquincho-sales-v1" };
+    const storageKeys = { products: "elquincho-products-v1", sales: "elquincho-sales-v1", production: "elquincho-production-v1" };
     const money = new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 });
     const roleStorageKey = "elquincho-role-v1";
     const validRoles = ["admin", "vendedor", "bodeguero"];
@@ -312,6 +342,61 @@
 
     function saveProducts() {
       localStorage.setItem(storageKeys.products, JSON.stringify(products));
+    }
+
+    function currentDateKey() {
+      const now = new Date();
+      const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+      return localDate.toISOString().slice(0, 10);
+    }
+
+    function loadProduction() {
+      const defaults = { date: currentDateKey(), raw: 20, ready: 8, losses: 0 };
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKeys.production));
+        if (saved?.date === defaults.date && [saved.raw, saved.ready, saved.losses].every((value) => Number.isInteger(value) && value >= 0)) {
+          return saved;
+        }
+      } catch (error) {
+        console.warn("No se pudo leer la producción guardada.", error);
+      }
+      return defaults;
+    }
+
+    function renderProduction() {
+      const production = loadProduction();
+      document.getElementById("input-crudos").value = String(production.raw);
+      document.getElementById("input-listos").value = String(production.ready);
+      document.getElementById("input-mermas").value = String(production.losses);
+      document.getElementById("production-status").textContent = `Registro del día ${new Date(`${production.date}T12:00:00`).toLocaleDateString("es-CL")}`;
+    }
+
+    function guardarProduccionPollos() {
+      const fields = [
+        ["input-crudos", "crudos"],
+        ["input-listos", "listos"],
+        ["input-mermas", "mermas"]
+      ];
+      const values = fields.map(([id]) => document.getElementById(id).valueAsNumber);
+      if (values.some((value) => !Number.isInteger(value) || value < 0)) {
+        showToast("Ingresa cantidades enteras iguales o mayores que cero.");
+        return;
+      }
+      const production = {
+        date: currentDateKey(),
+        raw: values[0],
+        ready: values[1],
+        losses: values[2],
+        updatedAt: new Date().toISOString()
+      };
+      try {
+        localStorage.setItem(storageKeys.production, JSON.stringify(production));
+      } catch (error) {
+        showToast("No se pudo guardar la producción. Revisa el almacenamiento del navegador.");
+        return;
+      }
+      renderProduction();
+      showToast("Producción de pollos actualizada.");
     }
 
     function updateClock() {
@@ -424,6 +509,7 @@
       });
       document.getElementById("inventory-list").replaceChildren(...rows);
       document.getElementById("inventory-summary").textContent = `${products.length} productos · ${products.reduce((sum, product) => sum + product.stock, 0)} unidades`;
+      renderProduction();
     }
 
     function adjustStock(productId, amount) {
@@ -642,6 +728,7 @@
       localStorage.setItem(roleStorageKey, usuarioActual.rol);
       aplicarPermisosSegunRol();
     });
+    document.getElementById("save-production").addEventListener("click", guardarProduccionPollos);
     document.getElementById("search").addEventListener("input", renderProducts);
     document.getElementById("clear-cart").addEventListener("click", () => {
       cart.clear();
