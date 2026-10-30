@@ -59,6 +59,18 @@
     .category-button:hover { border-color: #aeb9af; }
     .category-button[aria-pressed="true"] { border-color: var(--green); background: var(--green); color: white; }
     .product-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .module-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .module-card { min-height: 108px; display: flex; align-items: flex-start; gap: 11px; padding: 14px; border: 1px solid; border-radius: 6px; background: white; text-align: left; cursor: pointer; transition: transform 140ms, box-shadow 140ms, border-color 140ms; }
+    .module-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+    .module-card[aria-pressed="true"] { box-shadow: inset 0 0 0 1px currentColor; }
+    .module-icon { font-size: 21px; line-height: 1; }
+    .module-copy { display: grid; gap: 5px; }
+    .module-name { font-size: 13px; font-weight: 700; }
+    .module-description { font-size: 10px; line-height: 1.35; }
+    .module-minimarket { border-color: #b7cfe9; background: #edf4fb; color: #285d91; }
+    .module-botilleria { border-color: #ead3a6; background: #faf3e5; color: #8d6320; }
+    .module-carniceria { border-color: #e4c4a9; background: #f8eee5; color: #88502d; }
+    .module-pollos { border-color: #e8c5bb; background: #fbefeb; color: #913f2e; }
     .product { position: relative; min-height: 132px; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; padding: 14px; border: 1px solid var(--line); border-radius: 6px; background: #fff; text-align: left; cursor: pointer; transition: border-color 150ms, transform 150ms, box-shadow 150ms; }
     .product:hover:not(:disabled) { transform: translateY(-2px); border-color: #a6b8a8; box-shadow: 0 4px 12px rgb(34 45 37 / 7%); }
     .product:disabled { cursor: not-allowed; opacity: .48; }
@@ -147,6 +159,7 @@
       main { padding-right: 20px; padding-left: 20px; }
       .topbar { padding-right: 20px; padding-left: 20px; }
       .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .module-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 680px) {
       .topbar { height: 60px; padding: 0 16px; }
@@ -204,6 +217,24 @@
     </div>
 
     <section class="role-panel" id="panel-ventas" aria-label="Panel de ventas">
+    <nav class="module-grid" aria-label="Módulos de negocio">
+      <button type="button" class="module-card module-minimarket" data-module="minimarket" aria-pressed="true">
+        <span class="module-icon" aria-hidden="true">🛒</span>
+        <span class="module-copy"><span class="module-name">Minimarket</span><span class="module-description">Abarrotes y comestibles</span></span>
+      </button>
+      <button type="button" class="module-card module-botilleria" data-module="botilleria" aria-pressed="false">
+        <span class="module-icon" aria-hidden="true">🍷</span>
+        <span class="module-copy"><span class="module-name">Botillería</span><span class="module-description">Licores y bebestibles</span></span>
+      </button>
+      <button type="button" class="module-card module-carniceria" data-module="carniceria" aria-pressed="false">
+        <span class="module-icon" aria-hidden="true">🥩</span>
+        <span class="module-copy"><span class="module-name">Carnicería</span><span class="module-description">Cortes y embutidos</span></span>
+      </button>
+      <button type="button" class="module-card module-pollos" data-module="pollos" aria-pressed="false">
+        <span class="module-icon" aria-hidden="true">🍗</span>
+        <span class="module-copy"><span class="module-name">Pollos asados</span><span class="module-description">Horno y sala caliente</span></span>
+      </button>
+    </nav>
     <div class="workspace">
       <section class="catalog" aria-labelledby="catalog-title">
         <div class="section-heading">
@@ -216,7 +247,6 @@
             <input id="search" class="search" type="search" placeholder="Buscar producto..." aria-label="Buscar producto">
           </label>
         </div>
-        <nav class="categories" id="categories" aria-label="Filtrar por categoría"></nav>
         <div class="product-grid" id="product-grid" aria-live="polite"></div>
       </section>
 
@@ -313,8 +343,14 @@
         <div class="brand-name">El Quincho</div>
       </div>
       <h2 id="login-title">Acceso al sistema</h2>
-      <p class="login-description">Selecciona tu perfil para ingresar al sistema.</p>
+      <p class="login-description">Ingresa tus datos de prueba y selecciona un perfil.</p>
       <div class="login-form">
+        <label for="login-email">Correo electrónico
+          <input type="email" id="login-email" placeholder="usuario@elquincho.cl" autocomplete="username">
+        </label>
+        <label for="login-password">Contraseña
+          <input type="password" id="login-password" placeholder="Contraseña de prueba" autocomplete="current-password">
+        </label>
         <label for="select-rol">Perfil de usuario
           <select id="select-rol">
             <option value="vendedor">Vendedor · Caja y ventas</option>
@@ -322,8 +358,8 @@
             <option value="admin">Administrador · Acceso total</option>
           </select>
         </label>
-        <button type="button" class="login-submit" id="login-submit">Ingresar al sistema</button>
-        <p class="login-notice">Modo de demostración: el perfil se selecciona localmente y no verifica identidad. Integra autenticación real antes de usarlo en producción.</p>
+        <button type="button" class="login-submit" id="login-submit">Ingresar al dashboard</button>
+        <p class="login-notice">Modo de demostración: las credenciales no se verifican ni se envían; el perfil seleccionado solo simula los permisos.</p>
       </div>
     </div>
   </section>
@@ -335,6 +371,8 @@
       { id: "leche-entera", name: "Leche Entera 1L", category: "Minimarket", price: 1200, unit: "un.", stock: 15 },
       { id: "cerveza-1l", name: "Cerveza 1L", category: "Botillería", price: 2000, unit: "un.", stock: 30 },
       { id: "vino-750cc", name: "Vino 750cc", category: "Botillería", price: 4500, unit: "bot.", stock: 10 },
+      { id: "lomo-vetado", name: "Lomo Vetado (kg)", category: "Carnicería", price: 9800, unit: "kg", stock: 12 },
+      { id: "longanizas", name: "Longanizas (kg)", category: "Carnicería", price: 6500, unit: "kg", stock: 20 },
       { id: "pollo-papas", name: "Pollo Asado Entero + Papas", category: "Pollos Asados", price: 9500, unit: "un.", stock: 8 },
       { id: "medio-pollo-asado", name: "Medio Pollo Asado", category: "Pollos Asados", price: 5000, unit: "un.", stock: 5 }
     ];
@@ -344,7 +382,7 @@
     let usuarioActual = { nombre: "", rol: "" };
     let products = loadProducts();
     let cart = new Map();
-    let activeCategory = "Todos";
+    let activeModule = "minimarket";
     let activeInventoryCategory = "Todos";
     let toastTimer;
 
@@ -429,30 +467,42 @@
       document.getElementById("date-label").textContent = now.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     }
 
-    function renderCategories() {
-      const categories = ["Todos", ...new Set(products.map((product) => product.category))];
-      const container = document.getElementById("categories");
-      container.replaceChildren(...categories.map((category) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "category-button";
-        button.textContent = category;
-        button.setAttribute("aria-pressed", String(activeCategory === category));
-        button.addEventListener("click", () => {
-          activeCategory = category;
-          renderCategories();
-          renderProducts();
-        });
-        return button;
-      }));
+    function cambiarModulo(module) {
+      const modules = {
+        minimarket: { title: "Minimarket", category: "Minimarket" },
+        botilleria: { title: "Botillería", category: "Botillería" },
+        carniceria: { title: "Carnicería", category: "Carnicería" },
+        pollos: { title: "Pollos Asados y Horno", category: "Pollos Asados" }
+      };
+      if (!modules[module]) return;
+      activeModule = module;
+      const moduleInfo = modules[module];
+      document.getElementById("catalog-title").textContent = moduleInfo.title;
+      document.querySelectorAll("[data-module]").forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.module === module));
+      });
+      renderProducts();
     }
 
     function renderProducts() {
       const query = document.getElementById("search").value.trim().toLocaleLowerCase("es-CL");
+      const moduleCategories = {
+        minimarket: "Minimarket",
+        botilleria: "Botillería",
+        carniceria: "Carnicería",
+        pollos: "Pollos Asados"
+      };
       const visible = products.filter((product) => {
-        const matchesCategory = activeCategory === "Todos" || product.category === activeCategory;
-        return matchesCategory && product.name.toLocaleLowerCase("es-CL").includes(query);
+        return product.category === moduleCategories[activeModule] && product.name.toLocaleLowerCase("es-CL").includes(query);
       });
+      const title = {
+        minimarket: "Minimarket",
+        botilleria: "Botillería",
+        carniceria: "Carnicería",
+        pollos: "Pollos Asados y Horno"
+      }[activeModule];
+      document.getElementById("catalog-title").textContent = title;
+      document.getElementById("stock-summary").textContent = `${visible.length} productos`;
       const grid = document.getElementById("product-grid");
       if (visible.length === 0) {
         const empty = document.createElement("p");
@@ -486,7 +536,6 @@
           return button;
         }));
       }
-      document.getElementById("stock-summary").textContent = `${products.length} productos · ${products.reduce((sum, product) => sum + product.stock, 0)} unidades`;
     }
 
     function renderInventoryCategories() {
@@ -775,6 +824,22 @@
       showToast(`Venta ${String(sale.folio).padStart(4, "0")} registrada · ${money.format(sale.total)}`);
     }
 
+    window.simularLogin = function() {
+      const emailInput = document.getElementById("login-email");
+      if (emailInput.value && !emailInput.checkValidity()) {
+        emailInput.reportValidity();
+        return;
+      }
+      const roles = {
+        vendedor: { nombre: emailInput.value.trim() || "Juan Pérez", rol: "vendedor" },
+        bodeguero: { nombre: emailInput.value.trim() || "Camila Soto", rol: "bodeguero" },
+        admin: { nombre: emailInput.value.trim() || "Administrador", rol: "admin" }
+      };
+      usuarioActual = roles[document.getElementById("select-rol").value] || roles.vendedor;
+      aplicarPermisosSegunRol();
+      cambiarModulo("minimarket");
+      setAuthenticated(true);
+    };
     document.getElementById("login-submit").addEventListener("click", window.simularLogin);
     document.getElementById("logout-button").addEventListener("click", window.cerrarSesion);
     document.getElementById("save-production").addEventListener("click", guardarProduccionPollos);
@@ -786,7 +851,10 @@
     document.getElementById("checkout-button").addEventListener("click", registerSale);
     updateClock();
     setInterval(updateClock, 30000);
-    renderCategories();
+    document.querySelectorAll("[data-module]").forEach((button) => {
+      button.addEventListener("click", () => cambiarModulo(button.dataset.module));
+    });
+    cambiarModulo("minimarket");
     renderCart();
     aplicarPermisosSegunRol();
     setAuthenticated(false);
