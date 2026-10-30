@@ -59,8 +59,9 @@
     .category-button:hover { border-color: #aeb9af; }
     .category-button[aria-pressed="true"] { border-color: var(--green); background: var(--green); color: white; }
     .product-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-    .module-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .module-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
     .module-card { min-height: 108px; display: flex; align-items: flex-start; gap: 11px; padding: 14px; border: 1px solid; border-radius: 6px; background: white; text-align: left; cursor: pointer; transition: transform 140ms, box-shadow 140ms, border-color 140ms; }
+    .module-all { border-color: #d7d9d2; background: #f4f4ef; color: #4e5a50; }
     .module-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
     .module-card[aria-pressed="true"] { box-shadow: inset 0 0 0 1px currentColor; }
     .module-icon { font-size: 21px; line-height: 1; }
@@ -218,6 +219,10 @@
 
     <section class="role-panel" id="panel-ventas" aria-label="Panel de ventas">
     <nav class="module-grid" aria-label="Módulos de negocio">
+      <button type="button" class="module-card module-all" data-module="todos" aria-pressed="false">
+        <span class="module-icon" aria-hidden="true">▦</span>
+        <span class="module-copy"><span class="module-name">Todos</span><span class="module-description">Catálogo completo</span></span>
+      </button>
       <button type="button" class="module-card module-minimarket" data-module="minimarket" aria-pressed="true">
         <span class="module-icon" aria-hidden="true">🛒</span>
         <span class="module-copy"><span class="module-name">Minimarket</span><span class="module-description">Abarrotes y comestibles</span></span>
@@ -378,6 +383,8 @@
     ];
     const storageKeys = { products: "elquincho-products-v1", sales: "elquincho-sales-v1", production: "elquincho-production-v1" };
     const money = new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 });
+    const roleStorageKey = "usuarioRol";
+    const emailStorageKey = "usuarioEmail";
     const validRoles = ["admin", "vendedor", "bodeguero"];
     let usuarioActual = { nombre: "", rol: "" };
     let products = loadProducts();
@@ -469,6 +476,7 @@
 
     function cambiarModulo(module) {
       const modules = {
+        todos: { title: "Todos los productos", category: null },
         minimarket: { title: "Minimarket", category: "Minimarket" },
         botilleria: { title: "Botillería", category: "Botillería" },
         carniceria: { title: "Carnicería", category: "Carnicería" },
@@ -493,9 +501,11 @@
         pollos: "Pollos Asados"
       };
       const visible = products.filter((product) => {
-        return product.category === moduleCategories[activeModule] && product.name.toLocaleLowerCase("es-CL").includes(query);
+        const matchesModule = activeModule === "todos" || product.category === moduleCategories[activeModule];
+        return matchesModule && product.name.toLocaleLowerCase("es-CL").includes(query);
       });
       const title = {
+        todos: "Todos los productos",
         minimarket: "Minimarket",
         botilleria: "Botillería",
         carniceria: "Carnicería",
@@ -831,15 +841,25 @@
         return;
       }
       const roles = {
-        vendedor: { nombre: emailInput.value.trim() || "Juan Pérez", rol: "vendedor" },
-        bodeguero: { nombre: emailInput.value.trim() || "Camila Soto", rol: "bodeguero" },
+        vendedor: { nombre: emailInput.value.trim() || "Vendedor", rol: "vendedor" },
+        bodeguero: { nombre: emailInput.value.trim() || "Bodeguero", rol: "bodeguero" },
         admin: { nombre: emailInput.value.trim() || "Administrador", rol: "admin" }
       };
-      usuarioActual = roles[document.getElementById("select-rol").value] || roles.vendedor;
+      const selectedRole = document.getElementById("select-rol").value;
+      const storedRole = { vendedor: "seller", bodeguero: "warehouse", admin: "admin" }[selectedRole] || "seller";
+      localStorage.setItem(roleStorageKey, storedRole);
+      usuarioActual = { ...roles[selectedRole], nombre: localStorage.getItem(emailStorageKey) || roles[selectedRole].nombre };
       aplicarPermisosSegunRol();
-      cambiarModulo("minimarket");
+      cambiarModulo(selectedRole === "vendedor" ? "todos" : "minimarket");
       setAuthenticated(true);
     };
+
+    window.cerrarSesion = function() {
+      localStorage.removeItem(roleStorageKey);
+      localStorage.removeItem(emailStorageKey);
+      window.location.replace("../index.html");
+    };
+
     document.getElementById("login-submit").addEventListener("click", window.simularLogin);
     document.getElementById("logout-button").addEventListener("click", window.cerrarSesion);
     document.getElementById("save-production").addEventListener("click", guardarProduccionPollos);
@@ -856,8 +876,21 @@
     });
     cambiarModulo("minimarket");
     renderCart();
-    aplicarPermisosSegunRol();
-    setAuthenticated(false);
+    const savedRoles = { seller: "vendedor", warehouse: "bodeguero", admin: "admin" };
+    const savedRole = localStorage.getItem(roleStorageKey);
+    if (savedRoles[savedRole]) {
+      const profile = { vendedor: "Vendedor", bodeguero: "Bodeguero", admin: "Administrador" };
+      usuarioActual = {
+        nombre: localStorage.getItem(emailStorageKey) || profile[savedRoles[savedRole]],
+        rol: savedRoles[savedRole]
+      };
+      document.getElementById("select-rol").value = usuarioActual.rol;
+      aplicarPermisosSegunRol();
+      cambiarModulo(usuarioActual.rol === "vendedor" ? "todos" : "minimarket");
+      setAuthenticated(true);
+    } else {
+      window.location.replace("../index.html");
+    }
   </script>
 </body>
 </html>
