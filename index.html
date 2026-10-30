@@ -199,18 +199,12 @@
 
   <script>
     const defaultProducts = [
-      { id: "pan-marraqueta", name: "Pan marraqueta", category: "Minimarket", price: 1800, unit: "kg", stock: 20 },
-      { id: "pan-hallulla", name: "Pan hallulla", category: "Minimarket", price: 1700, unit: "kg", stock: 18 },
-      { id: "leche-entera", name: "Leche entera", category: "Minimarket", price: 1100, unit: "un.", stock: 24 },
-      { id: "bebida-1l", name: "Bebida 1.5 L", category: "Minimarket", price: 1900, unit: "un.", stock: 12 },
-      { id: "huevos-docena", name: "Huevos (docena)", category: "Minimarket", price: 3200, unit: "un.", stock: 10 },
-      { id: "cerveza-1l", name: "Cerveza 1 L", category: "Botillería", price: 2000, unit: "un.", stock: 24 },
-      { id: "cerveza-pack", name: "Cerveza (pack 6)", category: "Botillería", price: 8500, unit: "pack", stock: 8 },
-      { id: "vino-tinto", name: "Vino tinto", category: "Botillería", price: 4500, unit: "bot.", stock: 12 },
-      { id: "bebida-energetica", name: "Bebida energética", category: "Botillería", price: 1600, unit: "un.", stock: 15 },
-      { id: "pollo-papas", name: "Pollo asado + papas", category: "Pollos", price: 9500, unit: "un.", stock: 12 },
-      { id: "pollo-entero", name: "Pollo asado entero", category: "Pollos", price: 8000, unit: "un.", stock: 10 },
-      { id: "papas-fritas", name: "Papas fritas", category: "Pollos", price: 1800, unit: "porción", stock: 20 }
+      { id: "pan-marraqueta", name: "Pan Marraqueta (kg)", category: "Minimarket", price: 1800, unit: "kg", stock: 25 },
+      { id: "leche-entera", name: "Leche Entera 1L", category: "Minimarket", price: 1200, unit: "un.", stock: 15 },
+      { id: "cerveza-1l", name: "Cerveza 1L", category: "Botillería", price: 2000, unit: "un.", stock: 30 },
+      { id: "vino-750cc", name: "Vino 750cc", category: "Botillería", price: 4500, unit: "bot.", stock: 10 },
+      { id: "pollo-papas", name: "Pollo Asado Entero + Papas", category: "Pollos Asados", price: 9500, unit: "un.", stock: 8 },
+      { id: "medio-pollo-asado", name: "Medio Pollo Asado", category: "Pollos Asados", price: 5000, unit: "un.", stock: 5 }
     ];
     const storageKeys = { products: "elquincho-products-v1", sales: "elquincho-sales-v1" };
     const money = new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 });
@@ -222,7 +216,13 @@
     function loadProducts() {
       try {
         const saved = JSON.parse(localStorage.getItem(storageKeys.products));
-        if (Array.isArray(saved) && saved.every((item) => item && typeof item.id === "string" && Number.isFinite(item.stock))) return saved;
+        if (Array.isArray(saved) && saved.every((item) => item && typeof item.id === "string" && Number.isFinite(item.stock))) {
+          const savedById = new Map(saved.map((item) => [item.id, item]));
+          return defaultProducts.map((product) => ({
+            ...product,
+            stock: savedById.get(product.id)?.stock ?? product.stock
+          }));
+        }
       } catch (error) {
         console.warn("No se pudo leer el inventario guardado.", error);
       }
